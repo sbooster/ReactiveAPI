@@ -176,9 +176,10 @@ public class GenerateReactiveAPI extends DefaultTask {
     }
 
     public Class<?> getRequestBodyType(Method method) {
-        for (AnnotatedType annotatedParameterType : method.getAnnotatedParameterTypes()) {
-            if (annotatedParameterType.isAnnotationPresent(ReflectionUtils.getRequestBodyAnnotation())) {
-                return Primitives.unwrap(TypeToken.of(annotatedParameterType.getType()).getRawType());
+        Class<? extends Annotation> requestBodyAnnotation = ReflectionUtils.getRequestBodyAnnotation();
+        for (Parameter parameter : method.getParameters()) {
+            if(parameter.isAnnotationPresent(requestBodyAnnotation)) {
+                return Primitives.unwrap(parameter.getType());
             }
         }
         return void.class;
