@@ -1,6 +1,5 @@
 package dev.socialbooster.gradle.reactiveapi.util;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
@@ -9,7 +8,6 @@ import java.lang.reflect.Method;
 
 public class ReflectionUtils {
     @Setter
-    @Getter
     private static ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
     private static Class<Annotation> controller;
     private static Class<Annotation> requestBody;
