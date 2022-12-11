@@ -19,6 +19,7 @@ import lombok.extern.java.Log;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.*;
+import org.gradle.api.tasks.Optional;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,10 +31,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
 
@@ -109,11 +107,39 @@ public class GenerateReactiveAPI extends DefaultTask {
                     if (!(annotationValue instanceof String[] routes)) return;
                     if (routes.length < 1) return;
                     String route = routes[0];
-                    Class<?> responseType = this.getUnwrappedPublisherReturnType(method);
-                    String responseTypeName = responseType.getName();
+
+                    Class<?> responseType = method.getReturnType();
+                    String responseGenericsSuffix = "";
+                    if (method.getGenericReturnType() instanceof ParameterizedType parameterizedType) {
+                        Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+                        if (actualTypeArguments.length > 0) {
+                            Class<?> unwrappedPublisherReturnType = this.getUnwrappedPublisherReturnType(actualTypeArguments, responseType);
+                            if (Objects.equals(unwrappedPublisherReturnType, responseType)) {
+                                responseGenericsSuffix = this.getGenericsSuffix(actualTypeArguments);
+                            } else {
+                                responseType = unwrappedPublisherReturnType;
+                                Type[] responseGenericTypes = this.getActualTypeArgumentsForType(actualTypeArguments[0]);
+                                if (responseGenericTypes.length > 0) {
+                                    responseGenericsSuffix = this.getGenericsSuffix(responseGenericTypes);
+                                }
+                            }
+                        }
+                    }
+                    String responseTypeName = responseType.getName() + responseGenericsSuffix;
+
+                    Parameter requestBodyParameter = this.getRequestBodyParameter(method);
+                    Class<?> requestType = requestBodyParameter != null ?
+                            Primitives.unwrap(requestBodyParameter.getType()) : void.class;
+                    String requestGenericsSuffix = "";
+                    if (requestBodyParameter.getParameterizedType() instanceof ParameterizedType parameterizedType) {
+                        Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+                        if (actualTypeArguments.length > 0) {
+                            requestGenericsSuffix = this.getGenericsSuffix(actualTypeArguments);
+                        }
+                    }
+                    String requestTypeName = requestType.getName() + requestGenericsSuffix;
+
                     MessageType type = this.getMessageType(method, responseType);
-                    Class<?> requestType = this.getRequestBodyType(method);
-                    String requestTypeName = requestType.getName();
                     try {
                         this.registerRoute(messagesDescription,
                                 new RouteDescription(
@@ -150,7 +176,15 @@ public class GenerateReactiveAPI extends DefaultTask {
                 if (Modifier.isStatic(field.getModifiers())) continue;
                 String fieldName = field.getName();
                 Class<?> fieldType = Primitives.unwrap(field.getType());
-                String fieldTypeName = fieldType.getName();
+                String fieldTypeName = fieldType.getTypeName();
+
+                Type genericType = field.getGenericType();
+                if (genericType instanceof ParameterizedType parameterizedType) {
+                    Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+                    if (actualTypeArguments.length > 0) {
+                        fieldTypeName = fieldTypeName + this.getGenericsSuffix(actualTypeArguments);
+                    }
+                }
                 if (fieldType.isEnum()) {
                     try {
                         Method values = fieldType.getMethod("values");
@@ -175,19 +209,26 @@ public class GenerateReactiveAPI extends DefaultTask {
         }
     }
 
-    public Class<?> getRequestBodyType(Method method) {
+    public Parameter getRequestBodyParameter(Method method) {
         Class<? extends Annotation> requestBodyAnnotation = ReflectionUtils.getRequestBodyAnnotation();
         for (Parameter parameter : method.getParameters()) {
-            if(parameter.isAnnotationPresent(requestBodyAnnotation)) {
-                return Primitives.unwrap(parameter.getType());
+            if (parameter.isAnnotationPresent(requestBodyAnnotation)) {
+                return parameter;
             }
         }
-        return void.class;
+        return null;
     }
 
-    @SuppressWarnings("unused")
-    public MessageType getMessageType(Method method) {
-        return this.getMessageType(method, this.getUnwrappedPublisherReturnType(method));
+    public String getGenericsSuffix(Type[] types) {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (Type type : types) {
+            String typeName = type.getTypeName();
+            if (typeName.startsWith("java.lang.")) {
+                typeName = typeName.substring("java.lang.".length()).toLowerCase();
+            }
+            joiner.add(typeName);
+        }
+        return '<' + joiner.toString() + '>';
     }
 
     public MessageType getMessageType(Method method, Class<?> unwrappedPublisherReturnType) {
@@ -205,18 +246,18 @@ public class GenerateReactiveAPI extends DefaultTask {
         return returnsVoid ? MessageType.FIRE_AND_FORGET : MessageType.REQUEST_RESPONSE;
     }
 
-    public Class<?> getUnwrappedPublisherReturnType(Method method) {
-        Type genericReturnType = method.getGenericReturnType();
-        Class<?> returnType = method.getReturnType();
-        if (Objects.equals(returnType, ReflectionUtils.getMonoClass()) || Objects.equals(returnType, ReflectionUtils.getFluxClass())) {
-            if (genericReturnType instanceof ParameterizedType parameterizedType) {
-                Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
-                if (actualTypeArguments.length > 0) {
-                    return Primitives.unwrap(TypeToken.of(actualTypeArguments[0]).getRawType());
-                }
-            }
-        }
-        return Primitives.unwrap(returnType);
+    public Class<?> getUnwrappedPublisherReturnType(Type[] actualTypeArguments, Class<?> returnType) {
+        if (Objects.equals(returnType, ReflectionUtils.getMonoClass()) || Objects.equals(returnType, ReflectionUtils.getFluxClass()))
+            return Primitives.unwrap(TypeToken.of(actualTypeArguments[0]).getRawType());
+        else
+            return Primitives.unwrap(returnType);
+    }
+
+    public Type[] getActualTypeArgumentsForType(Type type) {
+        if (type instanceof ParameterizedType parameterizedType)
+            return parameterizedType.getActualTypeArguments();
+        else
+            return new Type[0];
     }
 
     public Set<Class<?>> getControllers(ClassLoader classLoader) throws IOException {
