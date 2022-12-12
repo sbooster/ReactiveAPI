@@ -18,3 +18,37 @@ Gradle plugin to generate JSON describing Controller that containing MessageMapp
 # Versioning
 
 We use [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) to manage our releases.
+
+# Features
+
+- [X] Easy to use
+- [X] Easy to configure
+- [X] Lightweight
+
+# Download
+
+Add plugins repository in your settings.gradle:
+
+```kotlin
+pluginManagement {
+    repositories {
+        maven("https://repo.animecraft.fun/repository/maven-snapshots/")
+    }
+}
+```
+
+Apply plugin in your build.gradle:
+
+```kotlin
+plugins {
+    id("dev.socialbooster.gradle.reactiveapi") version "<version>"
+}
+```
+
+# How To
+
+* Apply plugin [as shown above](#Download)
+* Run `gradle generateReactiveAPI`
+* After task finished execution documented API can be found in outputFile (`$buildDir/libs/ReactiveAPI.json` by default)
+* Output file can be specified by adding `outputFile = "<path to output file>"` in generateReactiveAPI task configuration
+* Pretty Print option can be enabled by adding `prettyPrint = true` in generateReactiveAPI task configuration
