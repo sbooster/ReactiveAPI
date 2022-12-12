@@ -18,8 +18,8 @@ import lombok.Setter;
 import lombok.extern.java.Log;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
-import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,12 +32,15 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
 
 @Getter
 @Log
 public class GenerateReactiveAPI extends DefaultTask {
+    private static final String JAVA_LANG = "java.lang.";
+
     @Optional
     @InputFiles
     private Iterable<File> compileClasspath;
@@ -126,7 +129,6 @@ public class GenerateReactiveAPI extends DefaultTask {
                         }
                     }
                     String responseTypeName = responseType.getName() + responseGenericsSuffix;
-
                     Parameter requestBodyParameter = this.getRequestBodyParameter(method);
                     Class<?> requestType = requestBodyParameter != null ?
                             Primitives.unwrap(requestBodyParameter.getType()) : void.class;
@@ -176,34 +178,52 @@ public class GenerateReactiveAPI extends DefaultTask {
                 if (Modifier.isStatic(field.getModifiers())) continue;
                 String fieldName = field.getName();
                 Class<?> fieldType = Primitives.unwrap(field.getType());
-                String fieldTypeName = fieldType.getTypeName();
+                AtomicReference<String> fieldTypeName = new AtomicReference<>(fieldType.getTypeName());
 
                 Type genericType = field.getGenericType();
                 if (genericType instanceof ParameterizedType parameterizedType) {
                     Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
                     if (actualTypeArguments.length > 0) {
-                        fieldTypeName = fieldTypeName + this.getGenericsSuffix(actualTypeArguments);
+                        fieldTypeName.set(fieldTypeName + this.getGenericsSuffix(actualTypeArguments));
                     }
                 }
                 if (fieldType.isEnum()) {
                     try {
                         Method values = fieldType.getMethod("values");
-                        values.setAccessible(true);
-                        Object enumArray = values.invoke(null);
-                        Set<String> enumValues = new HashSet<>();
-                        for (Object enumValue : (Object[]) enumArray) {
-                            enumValues.add(enumValue.toString());
-                        }
-                        fieldTypeName = String.join(" | ", enumValues);
+                        Method valueOf = fieldType.getMethod("valueOf", String.class);
+                        Arrays.stream(fieldType.getMethods())
+                                .filter(method -> method.getName().equals("compareTo"))
+                                .findFirst()
+                                .ifPresent(compareTo -> {
+                                    try {
+                                        Object enumArray = values.invoke(null);
+                                        Set<String> enumValues = new HashSet<>();
+                                        for (Object enumValue : (Object[]) enumArray) {
+                                            enumValues.add(enumValue.toString());
+                                        }
+                                        fieldTypeName.set(enumValues.stream()
+                                                .sorted((o1, o2) -> {
+                                                    try {
+                                                        Object e1 = valueOf.invoke(null, o1);
+                                                        Object e2 = valueOf.invoke(null, o2);
+                                                        return (int) compareTo.invoke(e1, e2);
+                                                    } catch (IllegalAccessException | InvocationTargetException e) {
+                                                        return 0;
+                                                    }
+                                                })
+                                                .collect(Collectors.joining(" | ")));
+                                    } catch (IllegalAccessException | InvocationTargetException ignored) {
+                                    }
+                                });
                     } catch (Exception ignored) {
                     }
                 }
-                if (!fieldTypeName.startsWith("java.lang")) {
+                if (!fieldTypeName.get().startsWith(JAVA_LANG)) {
                     declareAndRegisterModel(messagesDescription, fieldType);
                 } else {
-                    fieldTypeName = fieldTypeName.substring("java.lang.".length()).toLowerCase();
+                    fieldTypeName.set(fieldTypeName.get().substring(JAVA_LANG.length()).toLowerCase());
                 }
-                modelDescription.declareField(fieldName, fieldTypeName);
+                modelDescription.declareField(fieldName, fieldTypeName.get());
             } catch (Exception ignored) {
             }
         }
@@ -223,8 +243,8 @@ public class GenerateReactiveAPI extends DefaultTask {
         StringJoiner joiner = new StringJoiner(", ");
         for (Type type : types) {
             String typeName = type.getTypeName();
-            if (typeName.startsWith("java.lang.")) {
-                typeName = typeName.substring("java.lang.".length()).toLowerCase();
+            if (typeName.startsWith(JAVA_LANG)) {
+                typeName = typeName.substring(JAVA_LANG.length()).toLowerCase();
             }
             joiner.add(typeName);
         }
