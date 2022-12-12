@@ -131,7 +131,7 @@ public class GenerateReactiveAPI extends DefaultTask {
                     Class<?> requestType = requestBodyParameter != null ?
                             Primitives.unwrap(requestBodyParameter.getType()) : void.class;
                     String requestGenericsSuffix = "";
-                    if (requestBodyParameter.getParameterizedType() instanceof ParameterizedType parameterizedType) {
+                    if (requestBodyParameter != null && requestBodyParameter.getParameterizedType() instanceof ParameterizedType parameterizedType) {
                         Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
                         if (actualTypeArguments.length > 0) {
                             requestGenericsSuffix = this.getGenericsSuffix(actualTypeArguments);
