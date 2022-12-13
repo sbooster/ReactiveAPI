@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.socialbooster.gradle"
-version = "1.2.2-SNAPSHOT"
+version = "1.2.3-SNAPSHOT"
 
 val rootPackage = "${project.group}.${project.name.toLowerCase()}"
 

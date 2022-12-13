@@ -9,11 +9,6 @@ import java.lang.reflect.Method;
 public class ReflectionUtils {
     @Setter
     private static ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-    private static Class<Annotation> controller;
-    private static Class<Annotation> requestBody;
-    private static Class<Annotation> messageMapping;
-    private static Class<?> monoClass;
-    private static Class<?> fluxClass;
 
     public static boolean isDependsEnabled() {
         try {
@@ -31,28 +26,19 @@ public class ReflectionUtils {
     @SneakyThrows
     @SuppressWarnings("unchecked")
     public static Class<? extends Annotation> getControllerAnnotation() {
-        if (controller == null) {
-            controller = (Class<Annotation>) classLoader.loadClass("org.springframework.stereotype.Controller");
-        }
-        return controller;
+        return (Class<Annotation>) classLoader.loadClass("org.springframework.stereotype.Controller");
     }
 
     @SneakyThrows
     @SuppressWarnings("unchecked")
     public static Class<? extends Annotation> getRequestBodyAnnotation() {
-        if (requestBody == null) {
-            requestBody = (Class<Annotation>) classLoader.loadClass("org.springframework.web.bind.annotation.RequestBody");
-        }
-        return requestBody;
+        return (Class<Annotation>) classLoader.loadClass("org.springframework.web.bind.annotation.RequestBody");
     }
 
     @SneakyThrows
     @SuppressWarnings("unchecked")
     public static Class<? extends Annotation> getMessageMappingAnnotation() {
-        if (messageMapping == null) {
-            messageMapping = (Class<Annotation>) classLoader.loadClass("org.springframework.messaging.handler.annotation.MessageMapping");
-        }
-        return messageMapping;
+        return (Class<Annotation>) classLoader.loadClass("org.springframework.messaging.handler.annotation.MessageMapping");
     }
 
     public static Object getAnnotationValue(Annotation annotation) {
@@ -67,17 +53,11 @@ public class ReflectionUtils {
 
     @SneakyThrows
     public static Class<?> getMonoClass() {
-        if (monoClass == null) {
-            monoClass = classLoader.loadClass("reactor.core.publisher.Mono");
-        }
-        return monoClass;
+        return classLoader.loadClass("reactor.core.publisher.Mono");
     }
 
     @SneakyThrows
     public static Class<?> getFluxClass() {
-        if (fluxClass == null) {
-            fluxClass = classLoader.loadClass("reactor.core.publisher.Flux");
-        }
-        return fluxClass;
+        return classLoader.loadClass("reactor.core.publisher.Flux");
     }
 }
