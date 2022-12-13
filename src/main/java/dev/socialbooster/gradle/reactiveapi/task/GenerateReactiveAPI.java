@@ -58,23 +58,24 @@ public class GenerateReactiveAPI extends DefaultTask {
     public void execute() throws IOException, TaskNotFoundException, PlainOutputFoundException {
         this.validateOutputs();
         this.loadDepends();
-        ClassLoader classLoader = this.getClassLoader();
-        ReflectionUtils.setClassLoader(classLoader);
-        if (ReflectionUtils.isDependsEnabled()) {
-            Set<Class<?>> controllers = this.getControllers(classLoader);
-            MessagesDescription messagesDescription = this.getMessageDescription(controllers);
-            this.save(messagesDescription);
-        } else {
-            log.warning("""
-                    The task GenerateReactiveAPI was applied, but the plugin could not find the dependencies.
-                    Make sure your project contains:
-                                RSocket,
-                                Reactor,
-                                SpringWeb,
-                                SpringMessaging,
-                                SpringContext,
-                    then try again.
-                    """);
+        try(URLClassLoader classLoader = this.getClassLoader()) {
+            ReflectionUtils.setClassLoader(classLoader);
+            if (ReflectionUtils.isDependsEnabled()) {
+                Set<Class<?>> controllers = this.getControllers(classLoader);
+                MessagesDescription messagesDescription = this.getMessageDescription(controllers);
+                this.save(messagesDescription);
+            } else {
+                log.warning("""
+                        The task GenerateReactiveAPI was applied, but the plugin could not find the dependencies.
+                        Make sure your project contains:
+                                    RSocket,
+                                    Reactor,
+                                    SpringWeb,
+                                    SpringMessaging,
+                                    SpringContext,
+                        then try again.
+                        """);
+            }
         }
     }
 
@@ -304,7 +305,7 @@ public class GenerateReactiveAPI extends DefaultTask {
     }
 
     @Internal
-    public ClassLoader getClassLoader() throws TaskNotFoundException, PlainOutputFoundException {
+    public URLClassLoader getClassLoader() throws TaskNotFoundException, PlainOutputFoundException {
         Set<File> files = Sets.newHashSet(compileClasspath);
         files.add(getProject().getTasksByName("jar", false)
                 .stream()
