@@ -65,12 +65,12 @@ public class ReactiveApiFunctionalTest {
         return destFile;
     }
 
-    @Test
+//    @Test
     public void buildTestProject() throws IOException {
         File projectDir = new File("build/functionalTest");
         Files.createDirectories(projectDir.toPath());
 
-        File projectZip = new File(Resources.getResource("testProject.zip").getFile());
+        File projectZip = new File(Resources.getResource("lovinadate-backend.zip").getFile());
         unzip(projectZip, projectDir);
 
         GradleRunner.create()
