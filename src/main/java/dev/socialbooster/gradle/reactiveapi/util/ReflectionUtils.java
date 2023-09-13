@@ -1,6 +1,6 @@
 package dev.socialbooster.gradle.reactiveapi.util;
 
-import dev.socialbooster.gradle.reactiveapi.annotation.ReactiveApiSchema;
+import dev.socialbooster.gradle.reactiveapi.annotations.Schema;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
@@ -19,7 +19,7 @@ public class ReflectionUtils {
             getRequestBodyAnnotation();
             getMonoClass();
             getFluxClass();
-            getReactiveApiSchemaAnnotation();
+            getSchemaAnnotation();
         } catch (Exception exception) {
             return false;
         }
@@ -46,8 +46,8 @@ public class ReflectionUtils {
 
     @SneakyThrows
     @SuppressWarnings("unchecked")
-    public static Class<? extends Annotation> getReactiveApiSchemaAnnotation() {
-        return (Class<Annotation>) classLoader.loadClass("dev.socialbooster.gradle.reactiveapi.annotation.ReactiveApiSchema");
+    public static Class<? extends Annotation> getSchemaAnnotation() {
+        return Schema.class;
     }
 
     public static Object getAnnotationValue(Annotation annotation) {
@@ -63,8 +63,8 @@ public class ReflectionUtils {
     @SneakyThrows
     public static String getMethodDescription(Method method) {
         String description = null;
-        if (method.isAnnotationPresent(ReactiveApiSchema.class)) {
-            Annotation annotation = method.getAnnotation(ReactiveApiSchema.class);
+        if (method.isAnnotationPresent(Schema.class)) {
+            Annotation annotation = method.getAnnotation(Schema.class);
             Method descriptionMethod = annotation.getClass().getDeclaredMethod("description");
             description = (String) descriptionMethod.invoke(annotation);
         }
@@ -84,8 +84,8 @@ public class ReflectionUtils {
     @SneakyThrows
     public static String getClassDescription(Class<?> clazz) {
         String description = null;
-        if (clazz.isAnnotationPresent(ReactiveApiSchema.class)) {
-            Annotation annotation = clazz.getAnnotation(ReactiveApiSchema.class);
+        if (clazz.isAnnotationPresent(Schema.class)) {
+            Annotation annotation = clazz.getAnnotation(Schema.class);
             Method descriptionMethod = annotation.getClass().getDeclaredMethod("description");
             description = (String) descriptionMethod.invoke(annotation);
         }
@@ -95,8 +95,8 @@ public class ReflectionUtils {
     @SneakyThrows
     public static String getFieldDescription(Field field) {
         String description = null;
-        if (field.isAnnotationPresent(ReactiveApiSchema.class)) {
-            Annotation annotation = field.getAnnotation(ReactiveApiSchema.class);
+        if (field.isAnnotationPresent(Schema.class)) {
+            Annotation annotation = field.getAnnotation(Schema.class);
             Method descriptionMethod = annotation.getClass().getDeclaredMethod("description");
             description = (String) descriptionMethod.invoke(annotation);
         }

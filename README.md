@@ -45,13 +45,6 @@ Apply plugin in your build.gradle:
 plugins {
     id("dev.socialbooster.gradle.reactiveapi") version "<version>"
 }
-
-dependencies {
-//   ...
-    compileOnly("dev.socialbooster.gradle:reactiveapi:<version>")
-    annotationProcessor("dev.socialbooster.gradle:reactiveapi:<version>")
-//   ...
-}
 ```
 
 # How To

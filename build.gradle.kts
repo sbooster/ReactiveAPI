@@ -10,13 +10,12 @@ subprojects {
 }
 
 group = "dev.socialbooster.gradle"
-version = "1.3.0-SNAPSHOT"
+version = "1.4.0-SNAPSHOT"
 
 val rootPackage = "${project.group}.${project.name.toLowerCase()}"
 
 repositories {
     mavenCentral()
-//    mavenLocal()
 }
 
 dependencies {
