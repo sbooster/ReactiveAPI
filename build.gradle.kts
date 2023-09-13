@@ -1,4 +1,5 @@
 plugins {
+    id("java")
     id("java-gradle-plugin")
     id("maven-publish")
     id("io.github.gradle-nexus.publish-plugin").version("1.1.0")
@@ -15,6 +16,7 @@ val rootPackage = "${project.group}.${project.name.toLowerCase()}"
 
 repositories {
     mavenCentral()
+//    mavenLocal()
 }
 
 dependencies {
@@ -47,6 +49,18 @@ java {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
+
+//For test. Publish to local maven repository
+//publishing {
+//    publications {
+//        create<MavenPublication>("reactiveapi") {
+//            from(components["java"])
+//        }
+//    }
+//    repositories {
+//        mavenLocal()
+//    }
+//}
 
 nexusPublishing {
     repositories {
