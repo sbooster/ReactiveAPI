@@ -6,6 +6,7 @@ import com.google.common.primitives.Primitives;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.GsonBuilder;
+import dev.socialbooster.gradle.reactiveapi.annotations.Schema;
 import dev.socialbooster.gradle.reactiveapi.exception.PlainOutputFoundException;
 import dev.socialbooster.gradle.reactiveapi.exception.TaskNotFoundException;
 import dev.socialbooster.gradle.reactiveapi.model.MessageType;
@@ -62,6 +63,18 @@ public class GenerateReactiveAPI extends DefaultTask {
             ReflectionUtils.setClassLoader(classLoader);
             if (ReflectionUtils.isDependsEnabled()) {
                 Set<Class<?>> controllers = this.getControllers(classLoader);
+
+                controllers.stream().map(Class::getAnnotations)
+                        .forEach(annotations -> {
+                            for (Annotation annotation : annotations) {
+                                Class<? extends Annotation> annotationType = annotation.annotationType();
+                                System.out.println(annotationType);
+                                if (annotationType == Schema.class) {
+                                    System.out.println(((Schema) annotation).description());
+                                }
+                            }
+                        });
+
                 MessagesDescription messagesDescription = this.getMessageDescription(controllers);
                 this.save(messagesDescription);
             } else {

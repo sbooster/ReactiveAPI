@@ -4,8 +4,12 @@ plugins {
     id("io.github.gradle-nexus.publish-plugin").version("1.1.0")
 }
 
+subprojects {
+    apply(plugin = "maven-publish")
+}
+
 group = "dev.socialbooster.gradle"
-version = "1.2.3-SNAPSHOT"
+version = "1.3.0-SNAPSHOT"
 
 val rootPackage = "${project.group}.${project.name.toLowerCase()}"
 
@@ -14,6 +18,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":reactiveapi-annotations"))
     implementation("com.google.guava:guava:31.1-jre")
 
     implementation("com.google.code.gson:gson:2.10")
