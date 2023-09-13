@@ -3,16 +3,19 @@ package dev.socialbooster.gradle.reactiveapi.model;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
 @Getter
 @RequiredArgsConstructor
 public class ModelDescription {
+    @Nullable
+    private final String description;
     private final String type;
-    private final Map<String, String> fields = new HashMap<>();
+    private final Map<String, DescriptionValuePair> fields = new HashMap<>();
 
-    public void declareField(String fieldName, String fieldType) {
-        fields.put(fieldName, fieldType);
+    public void declareField(String fieldName, DescriptionValuePair descriptionValuePair) {
+        fields.put(fieldName, descriptionValuePair);
     }
 }
