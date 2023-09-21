@@ -10,7 +10,7 @@ subprojects {
 }
 
 group = "dev.socialbooster.gradle"
-version = "1.4.0-SNAPSHOT"
+version = "1.4.1-SNAPSHOT"
 
 val rootPackage = "${project.group}.${project.name.toLowerCase()}"
 

@@ -60,18 +60,6 @@ public class GenerateReactiveAPI extends DefaultTask {
             ReflectionUtils.setClassLoader(classLoader);
             if (ReflectionUtils.isDependsEnabled()) {
                 Set<Class<?>> controllers = this.getControllers(classLoader);
-
-                controllers.stream().map(Class::getAnnotations)
-                        .forEach(annotations -> {
-                            for (Annotation annotation : annotations) {
-                                Class<? extends Annotation> annotationType = annotation.annotationType();
-                                System.out.println(annotationType);
-                                if (annotationType == Schema.class) {
-                                    System.out.println(((Schema) annotation).description());
-                                }
-                            }
-                        });
-
                 MessagesDescription messagesDescription = this.getMessageDescription(controllers);
                 this.save(messagesDescription);
             } else {
