@@ -30,9 +30,11 @@ We use [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) to manag
 Add plugins repository in your settings.gradle:
 
 ```kotlin
-pluginManagement {
-    repositories {
-        maven("https://repo.animecraft.fun/repository/maven-snapshots/")
+dependencyResolutionManagement {
+    pluginManagement {
+        repositories {
+            maven("https://repo.animecraft.fun/repository/maven-snapshots/")
+        }
     }
 }
 ```
