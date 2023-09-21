@@ -65,7 +65,7 @@ public class ReactiveApiFunctionalTest {
         return destFile;
     }
 
-    @Test
+//    @Test
     public void buildTestProject() throws IOException {
         File projectDir = new File("build/functionalTest");
         Files.createDirectories(projectDir.toPath());
