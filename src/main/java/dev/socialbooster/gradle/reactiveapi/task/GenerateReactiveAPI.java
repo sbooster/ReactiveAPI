@@ -6,12 +6,10 @@ import com.google.common.primitives.Primitives;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.GsonBuilder;
+import dev.socialbooster.gradle.reactiveapi.annotations.Schema;
 import dev.socialbooster.gradle.reactiveapi.exception.PlainOutputFoundException;
 import dev.socialbooster.gradle.reactiveapi.exception.TaskNotFoundException;
-import dev.socialbooster.gradle.reactiveapi.model.MessageType;
-import dev.socialbooster.gradle.reactiveapi.model.MessagesDescription;
-import dev.socialbooster.gradle.reactiveapi.model.ModelDescription;
-import dev.socialbooster.gradle.reactiveapi.model.RouteDescription;
+import dev.socialbooster.gradle.reactiveapi.model.*;
 import dev.socialbooster.gradle.reactiveapi.util.ReflectionUtils;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,6 +60,18 @@ public class GenerateReactiveAPI extends DefaultTask {
             ReflectionUtils.setClassLoader(classLoader);
             if (ReflectionUtils.isDependsEnabled()) {
                 Set<Class<?>> controllers = this.getControllers(classLoader);
+
+                controllers.stream().map(Class::getAnnotations)
+                        .forEach(annotations -> {
+                            for (Annotation annotation : annotations) {
+                                Class<? extends Annotation> annotationType = annotation.annotationType();
+                                System.out.println(annotationType);
+                                if (annotationType == Schema.class) {
+                                    System.out.println(((Schema) annotation).description());
+                                }
+                            }
+                        });
+
                 MessagesDescription messagesDescription = this.getMessageDescription(controllers);
                 this.save(messagesDescription);
             } else {
@@ -143,13 +153,17 @@ public class GenerateReactiveAPI extends DefaultTask {
                     String requestTypeName = requestType.getName() + requestGenericsSuffix;
 
                     MessageType type = this.getMessageType(method, responseType);
+
+                    String description = ReflectionUtils.getMethodDescription(method);
+
                     try {
                         this.registerRoute(messagesDescription,
                                 new RouteDescription(
                                         route,
                                         type,
                                         responseTypeName,
-                                        requestTypeName
+                                        requestTypeName,
+                                        description
                                 )
                         );
                         this.declareAndRegisterModel(messagesDescription, responseType);
@@ -170,7 +184,8 @@ public class GenerateReactiveAPI extends DefaultTask {
         String typeName = type.getName();
         if (typeName.startsWith("java") || !typeName.contains(".")) return;
         if (messagesDescription.containsModel(typeName)) return;
-        ModelDescription modelDescription = new ModelDescription(typeName);
+        String classDescription = ReflectionUtils.getClassDescription(type);
+        ModelDescription modelDescription = new ModelDescription(classDescription, typeName);
         messagesDescription.declareModel(modelDescription);
         Field[] fields = type.getDeclaredFields();
         for (Field field : fields) {
@@ -224,7 +239,8 @@ public class GenerateReactiveAPI extends DefaultTask {
                 } else {
                     fieldTypeName.set(fieldTypeName.get().substring(JAVA_LANG.length()).toLowerCase());
                 }
-                modelDescription.declareField(fieldName, fieldTypeName.get());
+                String description = ReflectionUtils.getFieldDescription(field);
+                modelDescription.declareField(fieldName, new DescriptionValuePair(description, fieldTypeName.get()) );
             } catch (Exception ignored) {
             }
         }
