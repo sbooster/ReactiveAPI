@@ -6,7 +6,6 @@ import com.google.common.primitives.Primitives;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.GsonBuilder;
-import dev.socialbooster.gradle.reactiveapi.annotations.Schema;
 import dev.socialbooster.gradle.reactiveapi.exception.PlainOutputFoundException;
 import dev.socialbooster.gradle.reactiveapi.exception.TaskNotFoundException;
 import dev.socialbooster.gradle.reactiveapi.model.*;
