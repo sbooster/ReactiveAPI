@@ -155,6 +155,7 @@ public class GenerateReactiveAPI extends DefaultTask {
                     MessageType type = this.getMessageType(method, responseType);
 
                     String description = ReflectionUtils.getMethodDescription(method);
+                    String[] tags = ReflectionUtils.getMethodTags(method);
 
                     try {
                         this.registerRoute(messagesDescription,
@@ -163,7 +164,8 @@ public class GenerateReactiveAPI extends DefaultTask {
                                         type,
                                         responseTypeName,
                                         requestTypeName,
-                                        description
+                                        description,
+                                        tags
                                 )
                         );
                         this.declareAndRegisterModel(messagesDescription, responseType);
@@ -185,7 +187,8 @@ public class GenerateReactiveAPI extends DefaultTask {
         if (typeName.startsWith("java") || !typeName.contains(".")) return;
         if (messagesDescription.containsModel(typeName)) return;
         String classDescription = ReflectionUtils.getClassDescription(type);
-        ModelDescription modelDescription = new ModelDescription(classDescription, typeName);
+        String[] classTags = ReflectionUtils.getClassTags(type);
+        ModelDescription modelDescription = new ModelDescription(classDescription, typeName, classTags);
         messagesDescription.declareModel(modelDescription);
         Field[] fields = type.getDeclaredFields();
         for (Field field : fields) {

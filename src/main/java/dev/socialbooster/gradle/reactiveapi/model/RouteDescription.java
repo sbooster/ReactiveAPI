@@ -14,4 +14,5 @@ public final class RouteDescription {
     private final String requestType;
     @Nullable
     private final String description;
+    private final String[] tags;
 }

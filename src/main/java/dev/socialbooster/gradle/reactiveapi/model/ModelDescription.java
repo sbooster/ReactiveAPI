@@ -13,6 +13,7 @@ public class ModelDescription {
     @Nullable
     private final String description;
     private final String type;
+    private final String[] tags;
     private final Map<String, DescriptionValuePair> fields = new HashMap<>();
 
     public void declareField(String fieldName, DescriptionValuePair descriptionValuePair) {
