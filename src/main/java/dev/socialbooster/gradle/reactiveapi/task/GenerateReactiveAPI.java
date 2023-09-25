@@ -6,7 +6,6 @@ import com.google.common.primitives.Primitives;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.GsonBuilder;
-import dev.socialbooster.gradle.reactiveapi.annotations.Schema;
 import dev.socialbooster.gradle.reactiveapi.exception.PlainOutputFoundException;
 import dev.socialbooster.gradle.reactiveapi.exception.TaskNotFoundException;
 import dev.socialbooster.gradle.reactiveapi.model.*;
@@ -60,17 +59,6 @@ public class GenerateReactiveAPI extends DefaultTask {
             ReflectionUtils.setClassLoader(classLoader);
             if (ReflectionUtils.isDependsEnabled()) {
                 Set<Class<?>> controllers = this.getControllers(classLoader);
-
-                controllers.stream().map(Class::getAnnotations)
-                        .forEach(annotations -> {
-                            for (Annotation annotation : annotations) {
-                                Class<? extends Annotation> annotationType = annotation.annotationType();
-                                System.out.println(annotationType);
-                                if (annotationType == Schema.class) {
-                                    System.out.println(((Schema) annotation).description());
-                                }
-                            }
-                        });
 
                 MessagesDescription messagesDescription = this.getMessageDescription(controllers);
                 this.save(messagesDescription);
@@ -141,8 +129,11 @@ public class GenerateReactiveAPI extends DefaultTask {
                     }
                     String responseTypeName = responseType.getName() + responseGenericsSuffix;
                     Parameter requestBodyParameter = this.getRequestBodyParameter(method);
-                    Class<?> requestType = requestBodyParameter != null ?
+                    Class<?> requestBodyType = requestBodyParameter != null ?
                             Primitives.unwrap(requestBodyParameter.getType()) : void.class;
+
+                    String requestParamName = this.getRequestParamName(method, requestBodyType);
+
                     String requestGenericsSuffix = "";
                     if (requestBodyParameter != null && requestBodyParameter.getParameterizedType() instanceof ParameterizedType parameterizedType) {
                         Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
@@ -150,11 +141,12 @@ public class GenerateReactiveAPI extends DefaultTask {
                             requestGenericsSuffix = this.getGenericsSuffix(actualTypeArguments);
                         }
                     }
-                    String requestTypeName = requestType.getName() + requestGenericsSuffix;
+                    String requestBodyName = requestBodyType.getName() + requestGenericsSuffix;
 
                     MessageType type = this.getMessageType(method, responseType);
 
                     String description = ReflectionUtils.getMethodDescription(method);
+                    String[] tags = ReflectionUtils.getMethodTags(method);
 
                     try {
                         this.registerRoute(messagesDescription,
@@ -162,12 +154,14 @@ public class GenerateReactiveAPI extends DefaultTask {
                                         route,
                                         type,
                                         responseTypeName,
-                                        requestTypeName,
-                                        description
+                                        requestBodyName,
+                                        requestParamName,
+                                        description,
+                                        tags
                                 )
                         );
                         this.declareAndRegisterModel(messagesDescription, responseType);
-                        this.declareAndRegisterModel(messagesDescription, requestType);
+                        this.declareAndRegisterModel(messagesDescription, requestBodyType);
                     } catch (Exception exception) {
                         exception.printStackTrace();
                     }
@@ -185,7 +179,8 @@ public class GenerateReactiveAPI extends DefaultTask {
         if (typeName.startsWith("java") || !typeName.contains(".")) return;
         if (messagesDescription.containsModel(typeName)) return;
         String classDescription = ReflectionUtils.getClassDescription(type);
-        ModelDescription modelDescription = new ModelDescription(classDescription, typeName);
+        String[] classTags = ReflectionUtils.getClassTags(type);
+        ModelDescription modelDescription = new ModelDescription(classDescription, typeName, classTags);
         messagesDescription.declareModel(modelDescription);
         Field[] fields = type.getDeclaredFields();
         for (Field field : fields) {
@@ -252,6 +247,19 @@ public class GenerateReactiveAPI extends DefaultTask {
             if (parameter.isAnnotationPresent(requestBodyAnnotation)) {
                 return parameter;
             }
+        }
+        return null;
+    }
+
+    private String getRequestParamName(Method method, Class<?> requestBodyClass) {
+        Parameter requestParam = this.getRequestParameter(method, requestBodyClass);
+        return requestParam != null?
+                requestParam.getType().getSimpleName(): void.class.getSimpleName();
+    }
+    private Parameter getRequestParameter(Method method, Class<?> requestBodyClass) {
+        Parameter[] parameters = method.getParameters();
+        if (parameters.length > 0 && requestBodyClass == void.class) {
+            return parameters[0];
         }
         return null;
     }
