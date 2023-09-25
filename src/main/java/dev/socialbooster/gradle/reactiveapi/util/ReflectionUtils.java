@@ -1,6 +1,7 @@
 package dev.socialbooster.gradle.reactiveapi.util;
 
 import dev.socialbooster.gradle.reactiveapi.annotations.Schema;
+import dev.socialbooster.gradle.reactiveapi.annotations.Tags;
 import lombok.Setter;
 import lombok.SneakyThrows;
 
@@ -72,6 +73,17 @@ public class ReflectionUtils {
     }
 
     @SneakyThrows
+    public static String[] getMethodTags(Method method) {
+        String[] tags = new String[0];
+        if (method.isAnnotationPresent(Tags.class)) {
+            Annotation annotation = method.getAnnotation(Tags.class);
+            Method tagsMethod = annotation.getClass().getDeclaredMethod("tags");
+            tags = (String[]) tagsMethod.invoke(annotation);
+        }
+        return tags;
+    }
+
+    @SneakyThrows
     public static Class<?> getMonoClass() {
         return classLoader.loadClass("reactor.core.publisher.Mono");
     }
@@ -90,6 +102,17 @@ public class ReflectionUtils {
             description = (String) descriptionMethod.invoke(annotation);
         }
         return description;
+    }
+
+    @SneakyThrows
+    public static String[] getClassTags(Class<?> clazz) {
+        String[] tags = new String[0];
+        if (clazz.isAnnotationPresent(Tags.class)) {
+            Annotation annotation = clazz.getAnnotation(Tags.class);
+            Method tagsMethod = annotation.getClass().getDeclaredMethod("tags");
+            tags = (String[]) tagsMethod.invoke(annotation);
+        }
+        return tags;
     }
 
     @SneakyThrows

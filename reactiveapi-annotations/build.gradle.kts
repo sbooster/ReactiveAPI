@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.socialbooster.gradle"
-version = "1.2.3-SNAPSHOT"
+version = "1.3.0-SNAPSHOT"
 
 publishing {
     publications {

@@ -11,7 +11,9 @@ public final class RouteDescription {
     private final String route;
     private final MessageType type;
     private final String responseType;
-    private final String requestType;
+    private final String requestBody;
+    private final String requestParam;
     @Nullable
     private final String description;
+    private final String[] tags;
 }

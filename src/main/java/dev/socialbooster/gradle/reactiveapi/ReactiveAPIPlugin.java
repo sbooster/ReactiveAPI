@@ -16,7 +16,7 @@ public class ReactiveAPIPlugin implements Plugin<Project> {
     private void addDependency(Project project) {
         project.getDependencies().add(
                 JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME,
-                "dev.socialbooster.gradle:reactiveapi-annotations:1.2.3-SNAPSHOT"
+                "dev.socialbooster.gradle:reactiveapi-annotations:1.3.0-SNAPSHOT"
         );
     }
 }
