@@ -49,7 +49,7 @@ public class GenerateReactiveAPI extends DefaultTask {
     @Input
     @Setter
     private String outputFile = Paths.get(getProject().getBuildDir().getAbsolutePath(),
-            "libs", "ReactiveAPI.json").toString();
+            "docs", "rsocket", "ReactiveAPI.json").toString();
 
     @TaskAction
     public void execute() throws IOException, TaskNotFoundException, PlainOutputFoundException {
