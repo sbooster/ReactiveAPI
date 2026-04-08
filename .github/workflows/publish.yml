@@ -21,8 +21,8 @@ jobs:
           distribution: "liberica"
       - name: Make gradlew executable
         run: chmod +x ./gradlew
-      - name: Build and Publish with Gradle
-        run: ./gradlew clean build publishToMyNexus
+      - name: Build & Publish with Gradle
+        run: ./gradlew clean build publish
         env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          REPOSITORY_USERNAME: ${{ secrets.REPOSITORY_USERNAME }}
+          REPOSITORY_PASSWORD: ${{ secrets.REPOSITORY_PASSWORD }}
