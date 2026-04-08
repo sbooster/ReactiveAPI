@@ -36,18 +36,36 @@ gradlePlugin {
     }
 }
 
-tasks {
-    withType<JavaCompile> {
-        options.encoding = "UTF-8"
-    }
-}
-
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
-
+tasks {
+    register<Jar>("sourcesJar") {
+        archiveClassifier.set("sources")
+        from(sourceSets.main.get().allSource)
+    }
+    register<Jar>("javadocJar") {
+        archiveClassifier.set("javadoc")
+        from(javadoc)
+    }
+    javadoc {
+        options.encoding = "UTF-8"
+        options.memberLevel = JavadocMemberLevel.PUBLIC
+        isFailOnError = false
+    }
+    withType<JavaCompile> {
+        options.encoding = Charsets.UTF_8.name()
+        options.release.set(17)
+    }
+    build {
+        dependsOn("sourcesJar", "javadocJar")
+    }
+    jar {
+        enabled = true
+    }
+}
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
