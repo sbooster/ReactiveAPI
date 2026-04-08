@@ -2,7 +2,6 @@ plugins {
     id("java")
     id("java-gradle-plugin")
     id("maven-publish")
-    id("io.github.gradle-nexus.publish-plugin").version("1.1.0")
 }
 
 subprojects {
@@ -10,7 +9,7 @@ subprojects {
 }
 
 group = "dev.socialbooster.gradle"
-version = "1.5.2-SNAPSHOT"
+version = "1.5.2"
 
 val rootPackage = "${project.group}.${project.name.toLowerCase()}"
 
@@ -49,25 +48,23 @@ java {
     }
 }
 
-//For a test. Publish to local maven repository
-//publishing {
-//    publications {
-//        create<MavenPublication>("reactiveapi") {
-//            from(components["java"])
-//        }
-//    }
-//    repositories {
-//        mavenLocal()
-//    }
-//}
-
-nexusPublishing {
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+            artifact(tasks["sourcesJar"])
+            artifact(tasks["javadocJar"])
+            artifactId = "reactiveapi"
+        }
+    }
     repositories {
-        create("myNexus") {
-            nexusUrl.set(uri("https://repo.animecraft.fun/"))
-            snapshotRepositoryUrl.set(uri("https://repo.animecraft.fun/repository/maven-snapshots/"))
-            username.set(System.getenv("NEXUS_USERNAME"))
-            password.set(System.getenv("NEXUS_PASSWORD"))
+        maven {
+            name = "BillmarsSoft"
+            url = uri("https://repo.billmarssoft.com/releases/")
+            credentials {
+                username = System.getenv("REPOSITORY_USERNAME")
+                password = System.getenv("REPOSITORY_PASSWORD")
+            }
         }
     }
 }
