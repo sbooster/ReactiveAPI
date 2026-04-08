@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Schema Explorer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+  --border:#30363d;--border2:#484f58;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --accent:#58a6ff;--accent-bg:#1f3a5f;
+  --green:#3fb950;--green-bg:#1a3a1f;
+  --yellow:#d29922;--yellow-bg:#2d2010;
+  --red:#f85149;--red-bg:#3d1a1a;
+  --purple:#bc8cff;--purple-bg:#2a1a4a;
+  --orange:#ffa657;--orange-bg:#3a2010;
+  --teal:#39d353;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;display:flex;flex-direction:column}
+
+/* ── HEADER ─────────────────────────────────────────── */
+#header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;height:52px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:10}
+#header h1{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:8px}
+#header h1 span{color:var(--accent)}
+#search-wrap{flex:1;max-width:420px;position:relative}
+#search{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px 6px 30px;color:var(--text);font-size:13px;outline:none;transition:border-color .15s}
+#search:focus{border-color:var(--accent)}
+#search::placeholder{color:var(--text3)}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+#header-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.btn{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 12px;font-size:13px;cursor:pointer;transition:background .15s,border-color .15s;white-space:nowrap}
+.btn:hover{background:var(--bg4);border-color:var(--border2)}
+.btn-primary{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.btn-primary:hover{background:#1a4a7a}
+#schema-status{font-size:12px;color:var(--text2)}
+
+/* ── MAIN ────────────────────────────────────────────── */
+#main{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+#sidebar{width:300px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+#sidebar-tabs{display:flex;border-bottom:1px solid var(--border)}
+.stab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s;text-transform:uppercase;letter-spacing:.05em}
+.stab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.stab:hover:not(.active){color:var(--text)}
+#sidebar-filters{padding:10px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--border)}
+.filter-row{display:flex;flex-wrap:wrap;gap:4px}
+.filter-label{font-size:11px;color:var(--text3);width:100%;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
+.ftag{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;cursor:pointer;color:var(--text2);transition:all .15s}
+.ftag.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+#sidebar-list{overflow-y:auto;flex:1}
+.list-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;display:flex;flex-direction:column;gap:4px}
+.list-item:hover{background:var(--bg3)}
+.list-item.active{background:var(--accent-bg);border-left:3px solid var(--accent)}
+.list-item.active{padding-left:11px}
+.item-name{font-size:13px;font-weight:500;color:var(--text);font-family:var(--mono);word-break:break-all}
+.item-route{font-size:11px;color:var(--text2);font-family:var(--mono)}
+.item-meta{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.empty-list{padding:32px 16px;text-align:center;color:var(--text3);font-size:13px}
+
+/* ── CONTENT ─────────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:0}
+
+/* ── WELCOME / LOADING ───────────────────────────────── */
+#welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px}
+#load-state{display:flex;flex-direction:column;align-items:center;gap:14px}
+#load-msg{color:var(--text2);font-size:14px}
+.spinner{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── ROUTE DETAIL ────────────────────────────────────── */
+#detail{padding:24px 28px}
+.breadcrumb{display:flex;align-items:center;gap:6px;margin-bottom:16px;font-size:12px;color:var(--text3)}
+.breadcrumb a{color:var(--accent);cursor:pointer;text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+.breadcrumb span{color:var(--text3)}
+.detail-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.detail-title{font-size:20px;font-weight:700;font-family:var(--mono);word-break:break-all;flex:1}
+.detail-route{font-family:var(--mono);font-size:13px;color:var(--text2);background:var(--bg3);padding:8px 12px;border-radius:6px;border:1px solid var(--border);margin-bottom:12px;word-break:break-all}
+.tags-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+
+.section{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;overflow:hidden}
+.section-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.section-header:hover{background:var(--bg3)}
+.section-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.section-body{padding:16px}
+.section-body.collapsed{display:none}
+.section-toggle{margin-left:auto;color:var(--text3);font-size:12px}
+
+/* ── TYPE DISPLAY ────────────────────────────────────── */
+.type-block{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.type-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.type-val{font-family:var(--mono);font-size:13px}
+.type-primitive{color:#79c0ff}
+.type-builtin{color:#a5d6ff}
+.type-model-link{color:var(--accent);cursor:pointer;text-decoration:none;border-bottom:1px dashed var(--accent)}
+.type-model-link:hover{color:#79c0ff}
+.type-enum{display:flex;flex-wrap:wrap;gap:4px}
+.type-enum-val{background:var(--purple-bg);border:1px solid var(--purple);color:var(--purple);border-radius:4px;padding:1px 7px;font-family:var(--mono);font-size:12px}
+.type-generic{display:flex;align-items:baseline;gap:2px;flex-wrap:wrap}
+.type-undefined{color:var(--red)}
+.type-ambiguous{color:var(--orange);cursor:help}
+.ambiguous-badge{margin-left:6px;background:var(--orange-bg);border:1px solid var(--orange);border-radius:4px;padding:1px 6px;font-size:11px;font-style:normal}
+.ambiguous-list{margin-top:4px;padding:6px 8px;background:var(--orange-bg);border:1px solid var(--orange);border-radius:6px;display:flex;flex-direction:column;gap:3px}
+
+/* ── MODEL FIELDS ────────────────────────────────────── */
+.fields-table{width:100%;border-collapse:collapse}
+.fields-table th{text-align:left;padding:6px 10px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);font-weight:600}
+.fields-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.fields-table tr:last-child td{border-bottom:none}
+.field-name{font-family:var(--mono);font-size:13px;color:var(--text)}
+.fields-table tr:hover td{background:var(--bg3)}
+
+/* ── BADGES ──────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.03em;white-space:nowrap}
+.badge-REQUEST_RESPONSE{background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
+.badge-FIRE_AND_FORGET{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow)}
+.badge-REQUEST_STREAM{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent)}
+.badge-REQUEST_CHANNEL{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple)}
+.badge-METADATA_PUSH{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange)}
+.tag{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--text2)}
+
+/* ── COPY BUTTON ─────────────────────────────────────── */
+.copy-btn{background:none;border:1px solid var(--border);border-radius:4px;color:var(--text3);padding:3px 8px;font-size:11px;cursor:pointer;transition:all .15s}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+.copy-btn.copied{border-color:var(--green);color:var(--green)}
+
+/* ── JSON EXAMPLE ────────────────────────────────────── */
+.json-example{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px;line-height:1.6;overflow-x:auto;white-space:pre;color:var(--text)}
+.json-key{color:#79c0ff}
+.json-str{color:#a5d6ff}
+.json-num{color:#ffa657}
+.json-bool{color:#ff7b72}
+.json-null{color:var(--text3)}
+
+/* ── MODEL VIEW ──────────────────────────────────────── */
+.model-class{font-size:12px;color:var(--text3);font-family:var(--mono);margin-bottom:4px;word-break:break-all}
+.no-fields{color:var(--text3);font-size:13px;padding:8px 0}
+
+/* ── RESIZE ──────────────────────────────────────────── */
+#resizer{width:4px;cursor:col-resize;background:transparent;flex-shrink:0;transition:background .15s}
+#resizer:hover,#resizer.dragging{background:var(--accent)}
+
+/* ── SCROLLBAR ───────────────────────────────────────── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border2)}
+
+/* ── FILE INPUT ──────────────────────────────────────── */
+#file-input{display:none}
+
+/* ── STATS BAR ───────────────────────────────────────── */
+#stats-bar{padding:6px 14px;border-bottom:1px solid var(--border);background:var(--bg2);font-size:11px;color:var(--text3);display:flex;gap:16px;flex-shrink:0}
+.stat-item strong{color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>⬡ <span>API</span> Explorer</h1>
+  <div id="search-wrap">
+    <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input id="search" type="text" placeholder="Search routes, models, tags…" autocomplete="off">
+  </div>
+  <div id="header-actions">
+    <span id="schema-status"></span>
+    <button class="btn" id="btn-reload" onclick="fetchSchema()" title="Reload ReactiveAPI.json">↻ Reload</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="sidebar">
+    <div id="sidebar-tabs">
+      <div class="stab active" data-tab="routes">Routes</div>
+      <div class="stab" data-tab="models">Models</div>
+    </div>
+    <div id="sidebar-filters"></div>
+    <div id="sidebar-list"></div>
+  </div>
+  <div id="resizer"></div>
+  <div id="content">
+    <div id="welcome">
+      <div id="load-state">
+        <div class="spinner"></div>
+        <p id="load-msg">Loading ReactiveAPI.json…</p>
+        <button class="btn" id="btn-retry" style="display:none;margin-top:12px" onclick="fetchSchema()">Retry</button>
+      </div>
+    </div>
+    <div id="detail" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+let schema = null;
+let activeTab = 'routes';
+let selectedId = null;
+let activeTypeFilters = new Set();
+let activeTagFilters = new Set();
+let searchQuery = '';
+let navHistory = [];
+
+// ═══════════════════════════════════════════════════════
+//  URL ROUTER  (query-param based, works on any base path)
+// ═══════════════════════════════════════════════════════
+function syncUrl(tab, id, replace = false) {
+  const params = new URLSearchParams();
+  if (tab) params.set('tab', tab);
+  if (id)  params.set('id',  id);
+  const qs  = params.toString();
+  const url = window.location.pathname + (qs ? '?' + qs : '');
+  if (replace) history.replaceState({ tab, id }, '', url);
+  else         history.pushState   ({ tab, id }, '', url);
+}
+
+function restoreFromUrl() {
+  if (!schema) return;
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  const id  = params.get('id');
+  if (!tab && !id) return;
+  const validTab = (tab === 'models') ? 'models' : 'routes';
+  activeTab  = validTab;
+  selectedId = id || null;
+  navHistory = id ? [{ tab: validTab, id }] : [];
+  document.querySelectorAll('.stab').forEach(el =>
+    el.classList.toggle('active', el.dataset.tab === validTab));
+  renderSidebar();
+  renderDetail();
+  setTimeout(() => {
+    const active = document.querySelector('.list-item.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }, 50);
+}
+
+window.addEventListener('popstate', e => {
+  if (!schema) return;
+  const state = e.state || {};
+  const tab = (state.tab === 'models') ? 'models' : 'routes';
+  const id  = state.id || null;
+  activeTab  = tab;
+  selectedId = id;
+  navHistory = id ? [{ tab, id }] : [];
+  document.querySelectorAll('.stab').forEach(el =>
+    el.classList.toggle('active', el.dataset.tab === tab));
+  renderSidebar();
+  renderDetail();
+});
+
+// ═══════════════════════════════════════════════════════
+//  PREDEFINED TYPES (not declared in schema)
+// ═══════════════════════════════════════════════════════
+const JAVA_PRIMITIVES = new Set([
+  'void','int','long','double','float','boolean','byte','char','short',
+  'Void','Integer','Long','Double','Float','Boolean','Byte','Character','Short',
+  'integer','character',  // lowercase wrapper aliases
+  'String','string','Object','object','Number','number','CharSequence'
+]);
+// Maps any lowercase wrapper name → canonical name used in primitiveExample
+const PRIMITIVE_NORMALIZE = {
+  'integer':'Integer','character':'Character',
+  'void':'void','int':'int','long':'Long','double':'Double','float':'Float',
+  'boolean':'Boolean','byte':'Byte','char':'char','short':'Short',
+};
+const JAVA_FQN_PRIMITIVES = {
+  'java.lang.String':'String','java.lang.Integer':'Integer','java.lang.Long':'Long',
+  'java.lang.Double':'Double','java.lang.Float':'Float','java.lang.Boolean':'Boolean',
+  'java.lang.Void':'Void','java.lang.Byte':'Byte','java.lang.Character':'Character',
+  'java.lang.Short':'Short','java.lang.Object':'Object','java.lang.Number':'Number',
+  'java.lang.CharSequence':'CharSequence'
+};
+const PREDEFINED_TYPES = {
+  'java.util.List':'List','java.util.ArrayList':'List','java.util.LinkedList':'List',
+  'java.util.Set':'Set','java.util.HashSet':'Set','java.util.LinkedHashSet':'Set','java.util.TreeSet':'Set',
+  'java.util.Map':'Map','java.util.HashMap':'Map','java.util.LinkedHashMap':'Map','java.util.TreeMap':'Map',
+  'java.util.Collection':'Collection','java.util.Iterable':'Iterable',
+  'java.util.Optional':'Optional',
+  'java.util.UUID':'UUID',
+  'java.math.BigDecimal':'BigDecimal','java.math.BigInteger':'BigInteger',
+  'java.time.Instant':'Instant','java.time.LocalDate':'LocalDate',
+  'java.time.LocalDateTime':'LocalDateTime','java.time.LocalTime':'LocalTime',
+  'java.time.ZonedDateTime':'ZonedDateTime','java.time.OffsetDateTime':'OffsetDateTime',
+  'java.time.Duration':'Duration','java.time.Period':'Period',
+  'List':'List','Set':'Set','Map':'Map','Collection':'Collection','Optional':'Optional',
+  'UUID':'UUID','BigDecimal':'BigDecimal','BigInteger':'BigInteger',
+  'Instant':'Instant','LocalDate':'LocalDate','LocalDateTime':'LocalDateTime',
+  'LocalTime':'LocalTime','ZonedDateTime':'ZonedDateTime','OffsetDateTime':'OffsetDateTime',
+};
+
+// ═══════════════════════════════════════════════════════
+//  TYPE PARSER
+// ═══════════════════════════════════════════════════════
+function parseType(str) {
+  if (!str || str === 'null' || str === 'undefined' || str === '') return null;
+  str = str.trim();
+
+  // Generic: Outer<Inner, Inner2>
+  const lt = str.indexOf('<');
+  if (lt !== -1 && str.endsWith('>')) {
+    const outer = str.substring(0, lt).trim();
+    const inner = str.substring(lt + 1, str.length - 1).trim();
+    return { kind: 'generic', outer: parseType(outer), inners: splitGenericArgs(inner).map(parseType) };
+  }
+
+  // Enum: A|B|C
+  if (str.includes('|')) {
+    return { kind: 'enum', values: str.split('|').map(v => v.trim()).filter(Boolean) };
+  }
+
+  // Array suffix
+  if (str.endsWith('[]')) {
+    const base = str.slice(0, -2).trim();
+    return { kind: 'generic', outer: { kind: 'builtin', id: 'Array', name: 'Array' }, inners: [parseType(base)] };
+  }
+
+  if (JAVA_PRIMITIVES.has(str)) return { kind: 'primitive', name: str };
+  if (JAVA_FQN_PRIMITIVES[str]) return { kind: 'primitive', name: JAVA_FQN_PRIMITIVES[str] };
+  if (PREDEFINED_TYPES[str]) return { kind: 'builtin', id: str, name: PREDEFINED_TYPES[str] };
+
+  // Model reference — direct lookup first, then resolve by simple class name
+  if (schema && schema.models) {
+    if (schema.models[str]) {
+      return { kind: 'model', id: str, name: simpleName(str), defined: true };
+    }
+    const matches = Object.keys(schema.models).filter(k => simpleName(k) === str || simpleName(k) === simpleName(str));
+    if (matches.length === 1) {
+      return { kind: 'model', id: matches[0], name: simpleName(matches[0]), defined: true, resolved: true };
+    }
+    if (matches.length > 1) {
+      return { kind: 'model', id: str, name: simpleName(str), defined: false, ambiguous: true, candidates: matches };
+    }
+  }
+  return { kind: 'model', id: str, name: simpleName(str), defined: false };
+}
+
+function splitGenericArgs(s) {
+  const parts = []; let depth = 0; let cur = '';
+  for (const ch of s) {
+    if (ch === '<') depth++;
+    else if (ch === '>') depth--;
+    if (ch === ',' && depth === 0) { parts.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  return parts;
+}
+
+function simpleName(fqn) {
+  if (!fqn) return '?';
+  return fqn.split('.').pop().replace(/\$/, '.');
+}
+
+// ═══════════════════════════════════════════════════════
+//  TYPE RENDERER
+// ═══════════════════════════════════════════════════════
+function renderTypeNode(t, depth = 0) {
+  if (!t) return `<span class="type-primitive">void</span>`;
+  switch (t.kind) {
+    case 'primitive':
+      return `<span class="type-primitive">${esc(t.name)}</span>`;
+    case 'builtin':
+      return `<span class="type-builtin">${esc(t.name)}</span>`;
+    case 'model':
+      if (t.defined) {
+        return `<a class="type-model-link" onclick="navigateTo('model','${esc(t.id)}')">${esc(t.name)}</a>`;
+      } else if (t.ambiguous) {
+        const titles = t.candidates.map(c => esc(c)).join('\n');
+        const links = t.candidates.map(c =>
+          `<a class="type-model-link" style="display:block;font-size:11px" onclick="navigateTo('model','${esc(c)}')">${esc(c)}</a>`
+        ).join('');
+        return `<span class="type-ambiguous" title="${titles}">${esc(t.name)}<span class="ambiguous-badge">⚠ ${t.candidates.length} варианта</span></span><div class="ambiguous-list">${links}</div>`;
+      } else {
+        return `<span class="type-undefined" title="${esc(t.id)}">${esc(t.name)}</span>`;
+      }
+    case 'enum':
+      return `<span class="type-enum">${t.values.map(v => `<span class="type-enum-val">${esc(v)}</span>`).join('')}</span>`;
+    case 'generic': {
+      const outerHtml = renderTypeNode(t.outer, depth + 1);
+      const innerHtml = t.inners.map(i => renderTypeNode(i, depth + 1)).join('<span style="color:var(--text3)">, </span>');
+      return `<span class="type-generic">${outerHtml}<span style="color:var(--text3)">&lt;</span>${innerHtml}<span style="color:var(--text3)">&gt;</span></span>`;
+    }
+    default: return `<span>${esc(String(t))}</span>`;
+  }
+}
+
+function renderType(str) {
+  const t = parseType(str);
+  return renderTypeNode(t);
+}
+
+// ═══════════════════════════════════════════════════════
+//  JSON EXAMPLE GENERATOR
+// ═══════════════════════════════════════════════════════
+function generateExample(typeStr, visited = new Set()) {
+  if (!typeStr) return null;
+  const t = parseType(typeStr);
+  return generateExampleNode(t, visited);
+}
+
+function generateExampleNode(t, visited) {
+  if (!t) return null;
+  // Ambiguous — use first candidate as best guess
+  if (t.kind === 'model' && t.ambiguous && t.candidates.length > 0) {
+    return modelExample(t.candidates[0], visited);
+  }
+  switch (t.kind) {
+    case 'primitive': return primitiveExample(t.name);
+    case 'builtin': return builtinExample(t.name);
+    case 'enum': return t.values[0] || 'ENUM_VALUE';
+    case 'generic': return genericExample(t, visited);
+    case 'model': return modelExample(t.id, visited);
+    default: return null;
+  }
+}
+
+function primitiveExample(name) {
+  const canonical = PRIMITIVE_NORMALIZE[name] || name;
+  const m = { 'void':null,'Void':null,'int':0,'Integer':0,'long':0,'Long':0,
+    'double':0.0,'Double':0.0,'float':0.0,'Float':0.0,'boolean':false,'Boolean':false,
+    'byte':0,'Byte':0,'char':'a','Character':'a','short':0,'Short':0,
+    'String':'string','string':'','Object':{},'object':{},'Number':0,'number':0,'CharSequence':'string' };
+  return canonical in m ? m[canonical] : null;
+}
+
+function builtinExample(name) {
+  if (['List','Set','Collection','Iterable','Array'].includes(name)) return [];
+  if (name === 'Map') return {};
+  if (name === 'Optional') return null;
+  if (name === 'UUID') return '550e8400-e29b-41d4-a716-446655440000';
+  if (name === 'BigDecimal' || name === 'BigInteger') return 0;
+  if (['Instant','LocalDate','LocalDateTime','LocalTime','ZonedDateTime','OffsetDateTime'].includes(name)) return '2024-01-01T00:00:00Z';
+  if (['Duration','Period'].includes(name)) return 'PT1H';
+  return null;
+}
+
+function genericExample(t, visited) {
+  const outerName = t.outer ? (t.outer.name || t.outer.id || '') : '';
+  if (['List','Set','Collection','Iterable','Array'].includes(outerName)) {
+    const inner = t.inners[0] ? generateExampleNode(t.inners[0], new Set(visited)) : 'item';
+    return inner !== null ? [inner] : [];
+  }
+  if (outerName === 'Map') {
+    const val = t.inners[1] ? generateExampleNode(t.inners[1], new Set(visited)) : 'value';
+    return { key: val };
+  }
+  if (outerName === 'Optional') {
+    return t.inners[0] ? generateExampleNode(t.inners[0], new Set(visited)) : null;
+  }
+  // User-defined generic model (e.g. IdWrapper<Long>)
+  if (t.outer && t.outer.kind === 'model' && t.outer.defined) {
+    return genericModelExample(t.outer.id, t.inners || [], visited);
+  }
+  return null;
+}
+
+// Generates example for a model with resolved generic type parameters.
+// Scans fields for unresolved type references (like T, E, K, V) and maps
+// them to the provided inners in the order they first appear.
+function genericModelExample(id, inners, visited) {
+  if (!schema || !schema.models) return {};
+  if (visited.has(id)) return { '$ref': simpleName(id) };
+  const v = new Set(visited); v.add(id);
+  const model = schema.models[id];
+  if (!model || !model.fields) return {};
+
+  // Fields whose value is "object"/"Object" are generic placeholders.
+  // Map them to inners in the order they first appear.
+  const isGenericPlaceholder = val => {
+    const v = (val || '').trim().toLowerCase();
+    return v === 'object' || v === 'java.lang.object';
+  };
+
+  const placeholderFields = Object.values(model.fields)
+    .filter(f => isGenericPlaceholder(f.value));
+  // Build index: occurrence index → inner node
+  let innerIdx = 0;
+
+  const obj = {};
+  for (const [fname, fdata] of Object.entries(model.fields)) {
+    if (isGenericPlaceholder(fdata.value) && innerIdx < inners.length) {
+      obj[fname] = generateExampleNode(inners[innerIdx++], v);
+    } else {
+      obj[fname] = generateExample(fdata.value, v);
+    }
+  }
+  return obj;
+}
+
+function modelExample(id, visited) {
+  if (!schema || !schema.models) return {};
+  if (visited.has(id)) return { '$ref': simpleName(id) };
+  visited = new Set(visited); visited.add(id);
+  const model = schema.models[id];
+  if (!model || !model.fields) return {};
+  const obj = {};
+  for (const [fname, fdata] of Object.entries(model.fields)) {
+    obj[fname] = generateExample(fdata.value, visited);
+  }
+  return obj;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCHEMA LOADER
+// ═══════════════════════════════════════════════════════
+function loadSchema(json) {
+  try {
+    schema = typeof json === 'string' ? JSON.parse(json) : json;
+    if (!schema.routes && !schema.models) throw new Error('No routes or models found');
+    schema.routes = schema.routes || {};
+    schema.models = schema.models || {};
+    selectedId = null;
+    navHistory = [];
+    activeTypeFilters.clear();
+    activeTagFilters.clear();
+    renderSidebar();
+    showWelcome(false);
+    updateStatus();
+    renderDetail();
+    restoreFromUrl();
+  } catch(e) {
+    alert('Failed to parse schema: ' + e.message);
+  }
+}
+
+function updateStatus() {
+  const r = Object.keys(schema.routes).length;
+  const m = Object.keys(schema.models).length;
+  document.getElementById('schema-status').textContent = `${r} routes · ${m} models`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SIDEBAR
+// ═══════════════════════════════════════════════════════
+function renderSidebar() {
+  renderFilters();
+  renderList();
+}
+
+function allTags() {
+  if (!schema) return [];
+  const tags = new Set();
+  const items = activeTab === 'routes' ? schema.routes : schema.models;
+  for (const v of Object.values(items)) (v.tags||[]).forEach(t => tags.add(t));
+  return [...tags].sort();
+}
+
+function allTypes() {
+  if (!schema || activeTab !== 'routes') return [];
+  const types = new Set();
+  for (const v of Object.values(schema.routes)) if (v.type) types.add(v.type);
+  return [...types].sort();
+}
+
+function renderFilters() {
+  const el = document.getElementById('sidebar-filters');
+  if (!schema) { el.innerHTML = ''; return; }
+  const types = allTypes();
+  const tags = allTags();
+  let html = '';
+  if (types.length) {
+    html += `<div class="filter-row"><span class="filter-label">Type</span>`;
+    types.forEach(t => {
+      const on = activeTypeFilters.has(t);
+      html += `<span class="ftag ${on?'active':''}" onclick="toggleTypeFilter('${t}')">${typeLabel(t)}</span>`;
+    });
+    html += '</div>';
+  }
+  if (tags.length) {
+    html += `<div class="filter-row"><span class="filter-label">Tags</span>`;
+    tags.forEach(t => {
+      const on = activeTagFilters.has(t);
+      html += `<span class="ftag ${on?'active':''}" onclick="toggleTagFilter('${esc(t)}')">${esc(t)}</span>`;
+    });
+    html += '</div>';
+  }
+  el.innerHTML = html;
+  el.style.display = (types.length || tags.length) ? '' : 'none';
+}
+
+function typeLabel(t) {
+  const m = { REQUEST_RESPONSE:'RR',FIRE_AND_FORGET:'FF',REQUEST_STREAM:'RS',REQUEST_CHANNEL:'RC',METADATA_PUSH:'MP' };
+  return m[t] || t;
+}
+
+function toggleTypeFilter(t) {
+  if (activeTypeFilters.has(t)) activeTypeFilters.delete(t);
+  else activeTypeFilters.add(t);
+  renderSidebar();
+}
+
+function toggleTagFilter(t) {
+  if (activeTagFilters.has(t)) activeTagFilters.delete(t);
+  else activeTagFilters.add(t);
+  renderSidebar();
+}
+
+function renderList() {
+  if (!schema) return;
+  const q = searchQuery.toLowerCase();
+  const items = activeTab === 'routes' ? schema.routes : schema.models;
+  const el = document.getElementById('sidebar-list');
+  const filtered = Object.entries(items).filter(([id, v]) => {
+    if (activeTypeFilters.size && !activeTypeFilters.has(v.type)) return false;
+    if (activeTagFilters.size && !(v.tags||[]).some(t => activeTagFilters.has(t))) return false;
+    if (q) {
+      const hay = (id + (v.route||'') + (v.tags||[]).join(' ')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-list">No ${activeTab} found</div>`;
+    return;
+  }
+
+  filtered.sort(([a],[b]) => simpleName(a).localeCompare(simpleName(b)));
+  el.innerHTML = filtered.map(([id, v]) => {
+    const name = activeTab === 'routes' ? (id) : simpleName(id);
+    const isActive = selectedId === id;
+    return `<div class="list-item ${isActive?'active':''}" onclick="selectItem('${esc(id)}')">
+      <div class="item-name">${highlight(esc(name), q)}</div>
+      ${activeTab==='routes' && v.route ? `<div class="item-route">${highlight(esc(v.route),q)}</div>` : ''}
+      ${activeTab==='models' && id !== name ? `<div class="item-route">${highlight(esc(id),q)}</div>` : ''}
+      <div class="item-meta">
+        ${activeTab==='routes' && v.type ? `<span class="badge badge-${v.type}">${typeLabel(v.type)}</span>` : ''}
+        ${(v.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function highlight(text, q) {
+  if (!q) return text;
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx === -1) return text;
+  return text.slice(0,idx) + `<mark style="background:#2d4a1e;color:inherit;border-radius:2px">${text.slice(idx,idx+q.length)}</mark>` + text.slice(idx+q.length);
+}
+
+function selectItem(id) {
+  selectedId = id;
+  navHistory = [{ tab: activeTab, id }];
+  syncUrl(activeTab, id);
+  renderList();
+  renderDetail();
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function navigateTo(tab, id) {
+  navHistory.push({ tab, id });
+  activeTab = tab;
+  selectedId = id;
+  syncUrl(tab, id);
+  document.querySelectorAll('.stab').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
+  renderSidebar();
+  renderDetail();
+  setTimeout(() => {
+    const active = document.querySelector('.list-item.active');
+    if (active) active.scrollIntoView({ block: 'nearest' });
+  }, 50);
+}
+
+function navBack() {
+  navHistory.pop();
+  if (!navHistory.length) { selectedId = null; renderDetail(); renderList(); return; }
+  const last = navHistory[navHistory.length - 1];
+  activeTab = last.tab;
+  selectedId = last.id;
+  document.querySelectorAll('.stab').forEach(el => el.classList.toggle('active', el.dataset.tab === last.tab));
+  renderSidebar();
+  renderDetail();
+}
+
+// ═══════════════════════════════════════════════════════
+//  DETAIL PANEL
+// ═══════════════════════════════════════════════════════
+function showWelcome(show) {
+  document.getElementById('welcome').style.display = show ? 'flex' : 'none';
+  document.getElementById('detail').style.display = show ? 'none' : 'block';
+}
+
+function renderDetail() {
+  showWelcome(!schema);
+  if (!schema) return;
+  const el = document.getElementById('detail');
+  if (!selectedId) {
+    el.innerHTML = `<div style="padding:40px;color:var(--text3);text-align:center">Select a route or model from the sidebar</div>`;
+    return;
+  }
+  if (activeTab === 'routes') renderRouteDetail(el);
+  else renderModelDetail(el);
+}
+
+function renderRouteDetail(el) {
+  const route = schema.routes[selectedId];
+  if (!route) { el.innerHTML = '<div style="padding:20px;color:var(--red)">Route not found</div>'; return; }
+
+  const breadcrumb = renderBreadcrumb();
+  const tagsHtml = (route.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+  const reqBody = route.requestBody ? renderTypeSection('Request Body', route.requestBody, 'req') : '';
+  const reqParam = route.requestParam ? renderTypeSection('Request Params', route.requestParam, 'param') : '';
+  const resType = route.responseType ? renderTypeSection('Response Type', route.responseType, 'res') : '';
+
+  el.innerHTML = `
+    ${breadcrumb}
+    <div class="detail-header">
+      <div class="detail-title">${esc(selectedId)}</div>
+      <span class="badge badge-${route.type}">${route.type||''}</span>
+    </div>
+    <div class="detail-route">${esc(route.route || '—')}</div>
+    ${tagsHtml ? `<div class="tags-row">${tagsHtml}</div>` : ''}
+    ${reqBody}${reqParam}${resType}
+    ${renderExampleSection(route)}
+    ${renderRawSection(route)}
+  `;
+}
+
+function renderTypeSection(title, typeStr, id) {
+  const t = parseType(typeStr);
+  const typeHtml = renderTypeNode(t);
+  const modelFields = getModelFieldsHtml(t);
+  const sectionId = 'sec-' + id;
+  return `
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('${sectionId}')">
+        <span class="section-title">${title}</span>
+        <code style="font-size:12px;color:var(--text2);font-family:var(--mono);flex:1;margin-left:12px">${typeStr}</code>
+        <span class="section-toggle" id="${sectionId}-toggle">▾</span>
+      </div>
+      <div class="section-body" id="${sectionId}">
+        <div class="type-block">
+          <div class="type-label">Type</div>
+          <div class="type-val">${typeHtml}</div>
+        </div>
+        ${modelFields}
+      </div>
+    </div>`;
+}
+
+function getModelFieldsHtml(t) {
+  if (!t || !schema) return '';
+  // Find the model to show inline preview
+  let modelId = null;
+  if (t.kind === 'model' && t.defined) modelId = t.id;
+  else if (t.kind === 'generic') {
+    // Check inners for models
+    for (const inner of (t.inners||[])) {
+      if (inner && inner.kind === 'model' && inner.defined) { modelId = inner.id; break; }
+    }
+  }
+  if (!modelId) return '';
+  return renderModelFields(modelId, true);
+}
+
+function renderModelFields(modelId, preview = false) {
+  const model = schema.models[modelId];
+  if (!model || !model.fields || !Object.keys(model.fields).length) return '';
+  const fields = Object.entries(model.fields);
+  const title = preview
+    ? `<div class="type-label" style="margin-top:14px">Fields of <a class="type-model-link" onclick="navigateTo('model','${esc(modelId)}')">${esc(simpleName(modelId))}</a></div>`
+    : '';
+  return `${title}
+    <table class="fields-table" style="margin-top:${preview?0:0}px">
+      <thead><tr><th>Field</th><th>Type</th></tr></thead>
+      <tbody>
+        ${fields.map(([name, fdata]) => `
+          <tr>
+            <td class="field-name">${esc(name)}</td>
+            <td>${renderType(fdata.value)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderExampleSection(route) {
+  const hasReq = route.requestBody || route.requestParam;
+  const hasRes = route.responseType;
+  if (!hasReq && !hasRes) return '';
+
+  const isVoid = v => !v || /^(void|Void)$/i.test(v.trim());
+  const bodyAbsent = isVoid(route.requestBody);
+  const paramPresent = !isVoid(route.requestParam);
+  const noBody = bodyAbsent && paramPresent;
+  let parts = [];
+  if (hasReq) {
+    const example = !bodyAbsent
+      ? generateExample(route.requestBody)
+      : generateExample(route.requestParam);
+    parts.push({ label: 'Request Example', value: example, warn: noBody });
+  }
+  if (hasRes) {
+    parts.push({ label: 'Response Example', value: generateExample(route.responseType) });
+  }
+
+  return `
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('sec-example')">
+        <span class="section-title">JSON Examples</span>
+        <span class="section-toggle" id="sec-example-toggle">▾</span>
+      </div>
+      <div class="section-body" id="sec-example">
+        ${parts.map((p, i) => `
+          <div style="${i>0?'margin-top:16px':''}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">${p.label}</span>
+              <button class="copy-btn" onclick="copyJson(this, ${i})" data-idx="${i}">Copy</button>
+            </div>
+            ${p.warn ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:6px 10px;background:var(--yellow-bg);border:1px solid var(--yellow);border-radius:6px;font-size:12px;color:var(--yellow)">
+              <span>⚠</span><span>requestBody не задан — пример построен по requestParam и может быть неточным</span>
+            </div>` : ''}
+            <div class="json-example" id="json-ex-${i}">${syntaxHighlight(JSON.stringify(p.value, null, 2))}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+}
+
+function renderRawSection(data) {
+  const raw = JSON.stringify(data, null, 2);
+  return `
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('sec-raw')">
+        <span class="section-title">Raw JSON</span>
+        <button class="copy-btn" onclick="event.stopPropagation();copyRaw(this)" style="margin-left:auto;margin-right:8px">Copy</button>
+        <span class="section-toggle" id="sec-raw-toggle">▸</span>
+      </div>
+      <div class="section-body collapsed" id="sec-raw">
+        <div class="json-example" id="raw-json">${syntaxHighlight(raw)}</div>
+      </div>
+    </div>`;
+}
+
+function copyRaw(btn) {
+  const el = document.getElementById('raw-json');
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText || el.textContent).then(() => {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function renderModelDetail(el) {
+  const model = schema.models[selectedId];
+  if (!model) { el.innerHTML = '<div style="padding:20px;color:var(--red)">Model not found</div>'; return; }
+
+  const breadcrumb = renderBreadcrumb();
+  const tagsHtml = (model.tags||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+  const fields = model.fields || {};
+  const hasFields = Object.keys(fields).length > 0;
+
+  const example = generateExample(selectedId);
+
+  el.innerHTML = `
+    ${breadcrumb}
+    <div class="detail-header">
+      <div class="detail-title">${esc(simpleName(selectedId))}</div>
+    </div>
+    <div class="model-class">${esc(selectedId)}</div>
+    ${tagsHtml ? `<div class="tags-row" style="margin-top:10px">${tagsHtml}</div>` : ''}
+    <div class="section" style="margin-top:16px">
+      <div class="section-header" onclick="toggleSection('sec-fields')">
+        <span class="section-title">Fields</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:8px">${Object.keys(fields).length} fields</span>
+        <span class="section-toggle" id="sec-fields-toggle">▾</span>
+      </div>
+      <div class="section-body" id="sec-fields">
+        ${hasFields
+          ? `<table class="fields-table">${renderFieldRows(fields)}</table>`
+          : '<div class="no-fields">No fields defined</div>'
+        }
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header" onclick="toggleSection('sec-mex')">
+        <span class="section-title">JSON Example</span>
+        <button class="copy-btn" onclick="event.stopPropagation();copyModelJson(this)" style="margin-left:auto;margin-right:8px">Copy</button>
+        <span class="section-toggle" id="sec-mex-toggle">▾</span>
+      </div>
+      <div class="section-body" id="sec-mex">
+        <div class="json-example" id="model-json-ex">${syntaxHighlight(JSON.stringify(example, null, 2))}</div>
+      </div>
+    </div>
+    ${renderRawSection(model)}
+  `;
+}
+
+function renderFieldRows(fields) {
+  const thead = '<thead><tr><th>Field</th><th>Type</th></tr></thead>';
+  const rows = Object.entries(fields).map(([name, fdata]) => `
+    <tr>
+      <td class="field-name">${esc(name)}</td>
+      <td>${renderType(fdata.value)}</td>
+    </tr>`).join('');
+  return thead + '<tbody>' + rows + '</tbody>';
+}
+
+function renderBreadcrumb() {
+  if (navHistory.length <= 1) return '';
+  const crumbs = navHistory.slice(0, -1).map((item, i) => {
+    const name = item.tab === 'routes' ? item.id : simpleName(item.id);
+    return `<a onclick="navBackTo(${i})">${esc(name)}</a><span>›</span>`;
+  }).join('');
+  const current = navHistory[navHistory.length - 1];
+  const currentName = current.tab === 'routes' ? current.id : simpleName(current.id);
+  return `<div class="breadcrumb"><a onclick="navBackToStart()">Home</a><span>›</span>${crumbs}<span>${esc(currentName)}</span></div>`;
+}
+
+function navBackTo(idx) {
+  navHistory = navHistory.slice(0, idx + 1);
+  const item = navHistory[navHistory.length - 1];
+  activeTab = item.tab;
+  selectedId = item.id;
+  syncUrl(item.tab, item.id);
+  document.querySelectorAll('.stab').forEach(el => el.classList.toggle('active', el.dataset.tab === item.tab));
+  renderSidebar();
+  renderDetail();
+}
+
+function navBackToStart() {
+  navHistory = [];
+  selectedId = null;
+  syncUrl(activeTab, null);
+  renderList();
+  renderDetail();
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════
+function toggleSection(id) {
+  const body = document.getElementById(id);
+  const toggle = document.getElementById(id + '-toggle');
+  if (!body) return;
+  const collapsed = body.classList.toggle('collapsed');
+  if (toggle) toggle.textContent = collapsed ? '▸' : '▾';
+}
+
+function syntaxHighlight(json) {
+  if (json === undefined || json === null) return '<span class="json-null">null</span>';
+  return json
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+      let cls = 'json-num';
+      if (/^"/.test(match)) {
+        cls = /:$/.test(match) ? 'json-key' : 'json-str';
+      } else if (/true|false/.test(match)) {
+        cls = 'json-bool';
+      } else if (/null/.test(match)) {
+        cls = 'json-null';
+      }
+      return `<span class="${cls}">${match}</span>`;
+    });
+}
+
+let _jsonExamples = [];
+function copyJson(btn, idx) {
+  const el = document.getElementById('json-ex-' + idx);
+  if (!el) return;
+  const text = el.innerText || el.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function copyModelJson(btn) {
+  const el = document.getElementById('model-json-ex');
+  if (!el) return;
+  const text = el.innerText || el.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════
+//  AUTO-FETCH
+// ═══════════════════════════════════════════════════════
+async function fetchSchema() {
+  const msg = document.getElementById('load-msg');
+  const btn = document.getElementById('btn-retry');
+  const spinner = document.querySelector('.spinner');
+  msg.textContent = 'Loading ReactiveAPI.json…';
+  spinner.style.display = '';
+  btn.style.display = 'none';
+  showWelcome(true);
+  try {
+    const res = await fetch('./ReactiveAPI.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const json = await res.json();
+    loadSchema(json);
+  } catch(e) {
+    spinner.style.display = 'none';
+    msg.textContent = `Failed to load ReactiveAPI.json: ${e.message}`;
+    btn.style.display = '';
+  }
+}
+
+fetchSchema();
+
+// Tab switching
+document.querySelectorAll('.stab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (!schema) return;
+    activeTab = tab.dataset.tab;
+    selectedId = null;
+    navHistory = [];
+    syncUrl(activeTab, null);
+    document.querySelectorAll('.stab').forEach(t => t.classList.toggle('active', t === tab));
+    renderSidebar();
+    renderDetail();
+  });
+});
+
+// Search
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  renderList();
+});
+
+// Sidebar resize
+const resizer = document.getElementById('resizer');
+const sidebar = document.getElementById('sidebar');
+let isResizing = false, resizeStartX = 0, resizeStartW = 0;
+resizer.addEventListener('mousedown', e => {
+  isResizing = true;
+  resizeStartX = e.clientX;
+  resizeStartW = sidebar.offsetWidth;
+  resizer.classList.add('dragging');
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
+});
+document.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const w = Math.max(180, Math.min(600, resizeStartW + e.clientX - resizeStartX));
+  sidebar.style.width = w + 'px';
+});
+document.addEventListener('mouseup', () => {
+  if (!isResizing) return;
+  isResizing = false;
+  resizer.classList.remove('dragging');
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+});
+</script>
+</body>
+</html>
