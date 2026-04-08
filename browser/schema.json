@@ -1,0 +1,26 @@
+{
+  "routes": {
+    "<routes_name>": {
+      "route": "string",
+      "type": "REQUEST_RESPONSE|FIRE_AND_FORGET|REQUEST_STREAM|REQUEST_CHANNEL|METADATA_PUSH",
+      "responseType": "model",
+      "requestBody": "model",
+      "requestParam": "model",
+      "tags": [
+        "string"
+      ]
+    }
+  },
+  "models": {
+    "full.class.path": {
+      "tags": [
+        "string"
+      ],
+      "fields": {
+        "<field_name>": {
+          "value": "model"
+        }
+      }
+    }
+  }
+}
